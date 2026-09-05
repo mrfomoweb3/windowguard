@@ -1,7 +1,8 @@
 "use client";
 import {useEffect,useRef,useState} from 'react';
-import {createWalletClient,custom,type Address,type EIP1193Provider} from 'viem';
 import {somniaTestnet} from 'viem/chains';
+import {ConnectButton} from '@rainbow-me/rainbowkit';
+import {useAccount,useChainId,useWalletClient} from 'wagmi';
 import type {SomniaMarkets} from '@somnia-chain/markets-sdk';
 import {createExchange} from '@/lib/exchange';
 import {discoverCurrentBtc5mMarket} from '@/lib/market-discovery';
@@ -13,12 +14,15 @@ import {discoverClaims,redeemClaim} from '@/lib/claim-controller';
 import {readState,saveState,emptyState,type SavedState} from '@/lib/persistence';
 import type {BookSnapshot,ClaimCandidate,Outcome,OutcomeIndex,TrackedMarket} from '@/lib/types';
 
-type Provider=EIP1193Provider & {on?:(event:string,fn:()=>void)=>void;removeListener?:(event:string,fn:()=>void)=>void};
 const short=(value:string)=>`${value.slice(0,8)}…${value.slice(-6)}`;
 const message=(e:unknown)=>e instanceof Error?e.message.slice(0,350):'Request failed. Retry when the connection is available.';
 const explorer=(hash:string)=>`https://shannon-explorer.somnia.network/tx/${hash}`;
 
 export function TradingWorkbench(){
+  const {address,isConnected}=useAccount();
+  const chainId=useChainId();
+  const {data:walletClient}=useWalletClient();
+  const wallet=isConnected&&address&&chainId===somniaTestnet.id&&walletClient?address:null;
   const ex=useRef<SomniaMarkets|null>(null);
   const current=useRef<TrackedMarket|null>(null);
   const previousId=useRef<string|null>(null);
@@ -30,7 +34,6 @@ export function TradingWorkbench(){
   const [quantity,setQuantity]=useState('5');
   const [limit,setLimit]=useState('0.56');
   const [minimum,setMinimum]=useState('30');
-  const [wallet,setWallet]=useState<Address|null>(null);
   const [now,setNow]=useState(0);
   const [error,setError]=useState('');
   const [notice,setNotice]=useState('Discovering the current BTC five-minute market…');
@@ -74,11 +77,13 @@ export function TradingWorkbench(){
   },[market?.marketId,outcome,retry]);
   useEffect(()=>{setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),250);return()=>clearInterval(timer);},[]);
   useEffect(()=>{
-    const provider=(window as Window & {ethereum?:Provider}).ethereum;
-    const invalidate=()=>{generation.current++;ex.current?.setSigner({});setWallet(null);setReviewed(false);setClaims([]);setScanned(false);setSaved(emptyState());setNotice('Wallet or network changed. Connect again and review your order.');};
-    provider?.on?.('accountsChanged',invalidate);provider?.on?.('chainChanged',invalidate);
-    return()=>{provider?.removeListener?.('accountsChanged',invalidate);provider?.removeListener?.('chainChanged',invalidate);};
-  },[]);
+    generation.current++;ex.current?.setSigner({});setReviewed(false);setClaims([]);setScanned(false);setSaved(emptyState());
+    if(!isConnected||!address){setNotice('Wallet disconnected. Connect and review your order before submitting.');return;}
+    if(chainId!==somniaTestnet.id){setNotice('Switch to Somnia Shannon testnet before trading.');return;}
+    if(!walletClient||!ex.current){setNotice('Preparing the connected wallet…');return;}
+    ex.current.setSigner({walletClient});setSaved(readState(address));setError('');
+    setNotice('Wallet connected. Review your limits to enable submission.');
+  },[address,chainId,isConnected,walletClient,retry]);
 
   useEffect(()=>{
     if(!wallet||!market)return;
@@ -89,22 +94,6 @@ export function TradingWorkbench(){
     }
   },[wallet,market]);
 
-  async function connect(){
-    try{
-      const provider=(window as Window & {ethereum?:Provider}).ethereum;
-      if(!provider)throw new Error('Install an injected EVM wallet, then refresh this page.');
-      const chain=await provider.request({method:'eth_chainId'});
-      if(Number(chain)!==50312){
-        try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:'0xc488'}]});}
-        catch(e){if((e as {code?:number}).code!==4902)throw e;await provider.request({method:'wallet_addEthereumChain',params:[{chainId:'0xc488',chainName:'Somnia Shannon Testnet',nativeCurrency:{name:'STT',symbol:'STT',decimals:18},rpcUrls:['https://dream-rpc.somnia.network'],blockExplorerUrls:['https://shannon-explorer.somnia.network']}]});}
-      }
-      if(Number(await provider.request({method:'eth_chainId'}))!==50312)throw new Error('Switch your wallet to Somnia Shannon testnet.');
-      const accounts=await provider.request({method:'eth_requestAccounts'});const address=accounts[0];
-      if(!address||!ex.current)throw new Error('Wallet or market connection unavailable. Retry.');
-      ex.current.setSigner({walletClient:createWalletClient({account:address,chain:somniaTestnet,transport:custom(provider)})});
-      setWallet(address);setSaved(readState(address));setReviewed(false);setError('');
-    }catch(e){setError(message(e));}
-  }
   const intent=market?{marketId:market.marketId,outcome,quantity:Number(quantity),maximumAveragePrice:Number(limit),minimumSecondsRemaining:Number(minimum),createdAtMs:now}:null;
   const estimate=book?estimateBuyFill(Number(quantity),book.asks,Number(limit)):null;
   const decision=market&&book&&intent&&estimate?evaluateGuard({intent,currentMarket:market,book,estimate,nowMs:now}):null;
@@ -134,10 +123,10 @@ export function TradingWorkbench(){
   }
 
   return <main className="shell">
-    <nav className="nav"><div className="brand">WINDOW<span>GUARD</span></div><div className="navmeta"><span className="badge">SOMNIA SHANNON</span><span className="badge">TESTNET</span><button className="connect" disabled={busy} onClick={connect}>{wallet?short(wallet):'Connect wallet'}</button></div></nav>
+    <nav className="nav"><div className="brand">WINDOW<span>GUARD</span></div><div className="navmeta"><span className="badge">SOMNIA SHANNON</span><span className="badge">TESTNET</span><WalletControl disabled={busy}/></div></nav>
     <section className="hero"><h1>Check the price.<br/>Protect your order.</h1><p>A final execution check for five-minute markets. Set your limits before your wallet opens.</p></section>
     <p className="notice" role="status">{notice}</p>
-    {error&&<div className="notice" role="alert">{error} <button className="secondary" disabled={busy} onClick={()=>{ex.current?.setSigner({});setWallet(null);setRetry(x=>x+1);}}>Reconnect market data</button></div>}
+    {error&&<div className="notice" role="alert">{error} <button className="secondary" disabled={busy} onClick={()=>{ex.current?.setSigner({});setRetry(x=>x+1);}}>Reconnect market data</button></div>}
     <section className="workspace" aria-label="Order protection workbench"><div className="main">
       <header className="market"><div><span className="label">Current market</span><strong>BTC five-minute Up / Down</strong></div><div><span className="label">Market ID</span><span className="value" title={market?.marketId}>{market?short(market.marketId):'Awaiting market'}</span></div><div><span className="label">Status</span><span className="value">{market?.status??'UNAVAILABLE'}</span></div><div><span className="label">Remaining</span><span className="value countdown">{remaining===null?'--:--':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`}</span></div></header>
       <div className="formarea"><form className="intent" onSubmit={e=>{e.preventDefault();void submit();}}><h2 className="sectiontitle">Order intent</h2><fieldset disabled={busy}><div className="toggle" role="group" aria-label="Outcome">{(['UP','DOWN'] as Outcome[]).map(side=><button type="button" aria-pressed={outcome===side} className={outcome===side?'active':''} key={side} onClick={()=>setOutcome(side)}>Buy {side==='UP'?'Up':'Down'}</button>)}</div><div className="fields"><Field id="quantity" label="Quantity" value={quantity} change={v=>{setQuantity(v);setReviewed(false);}} min="0.01" max="25" step="0.001"/><Field id="limit" label="Maximum price per contract" value={limit} change={v=>{setLimit(v);setReviewed(false);}} min="0.001" max="0.999" step="0.001"/><Field id="time" label="Minimum seconds remaining" value={minimum} change={v=>{setMinimum(v);setReviewed(false);}} min="1" max="299" step="1"/></div></fieldset></form>
@@ -153,3 +142,4 @@ export function TradingWorkbench(){
 }
 function Metric({name,value}:{name:string;value:string}){return <div className="metric"><span>{name}</span><strong>{value}</strong></div>;}
 function Field({id,label,value,change,min,max,step}:{id:string;label:string;value:string;change:(v:string)=>void;min:string;max:string;step:string}){return <div className="field"><label htmlFor={id}>{label}</label><input id={id} type="number" value={value} onChange={e=>change(e.target.value)} min={min} max={max} step={step} required/></div>;}
+function WalletControl({disabled}:{disabled:boolean}){return <ConnectButton.Custom>{({account,chain,mounted,openAccountModal,openChainModal,openConnectModal})=>{const ready=mounted;const connected=ready&&account&&chain;return <div aria-hidden={!ready} style={!ready?{opacity:0,pointerEvents:'none',userSelect:'none'}:undefined}>{!connected?<button type="button" className="connect" disabled={disabled} onClick={openConnectModal}>Connect wallet</button>:chain.unsupported?<button type="button" className="connect" disabled={disabled} onClick={openChainModal}>Wrong network</button>:<button type="button" className="connect" disabled={disabled} onClick={openAccountModal}>{account.displayName}</button>}</div>;}}</ConnectButton.Custom>;}

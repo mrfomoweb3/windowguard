@@ -14,7 +14,7 @@ The price and available quantity can change while an order is reviewed. WindowGu
 
 ## Flow
 
-Connect an injected EVM wallet on chain 50312, choose Up or Down, enter a quantity and maximum price per contract, and review the Guard result. The submit action repeats discovery, on-chain status, book, and limit checks before calling an IOC order. Actual fills come from confirmed receipt events.
+Connect through RainbowKit on chain 50312, choose Up or Down, enter a quantity and maximum price per contract, and review the Guard result. The submit action repeats discovery, on-chain status, book, and limit checks before calling an IOC order. Actual fills come from confirmed receipt events.
 
 The maximum applies to **every consumed price level**, not merely to the expected average. Depth-weighted average is shown for explanation. A partial or zero fill can still occur during wallet confirmation. IOC cancels the unfilled remainder.
 
@@ -42,6 +42,8 @@ npm run dev
 ```
 
 Public market reads require no wallet or environment file. Default public endpoints are in `.env.example`. For CLI transaction rehearsals, copy `.env.example` to `.env.local` and configure **disposable testnet-only** maker and taker keys locally. Never put keys in chat, source, video, or `NEXT_PUBLIC_` variables. Gas and tUSDC collateral are required for writes.
+
+Set `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` to a free WalletConnect Cloud project ID before deployment to enable Rainbow Wallet and other QR/mobile connections. Browser extension wallets remain available through RainbowKit during local development.
 
 ```sh
 npm run doctor
