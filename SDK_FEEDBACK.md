@@ -23,7 +23,7 @@ The previous report incorrectly suggested `createOrder` and the unified API had 
 
 ## Runtime observations
 
-Discovery and order books work without funding. Intermittent WebSocket request failures were observed in Chrome; stale snapshots block orders. Actual write receipts, wallet rejection, indexed-fill lag, and redemption remain untested without funded disposable wallets.
+Discovery and order books work without funding. Intermittent WebSocket request failures were observed in Chrome; stale snapshots block orders. A real unified IOC returned a successful receipt and one decoded fill with 0.01 quantity at 0.804. A real redemption selected the on-chain winner, confirmed successfully, and the balance verification passed. Browser wallet rejection and indexed-fill lag remain unmeasured.
 
 ## Prioritized suggestions
 

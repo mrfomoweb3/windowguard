@@ -37,12 +37,18 @@ Production server on localhost:3100, Chrome:
 
 30 tests pass, including fresh pre-submit blocks, generation changes, actual partial fills, zero-fill confirmation, reverted receipts, wrong-outcome books, invalid timestamps, and per-level price protection. TypeScript and production compilation pass. ESLint is a separate real check (the original scaffold incorrectly aliased lint to typecheck).
 
-## Outstanding live evidence
+## Write evidence
 
-No `.env.local` with disposable funded wallets was present. No real order, approval, mint, cancellation, or redemption has been sent by this session. No transaction hash or payout has been invented.
+- Maker gas funding to taker: `0x49e6a102cec4ce399217093052acda3c7a9f580ce55f2529e1ac539bf2162bd9`.
+- Maker tUSDC faucet: `0xf0370f10e87676c8a59d653485ea92918211b5e5b95a59805a906bf8917f7033`.
+- Taker tUSDC faucet: `0x727204916be6e6e66fd3344d1dd423ea256aa20229a29979f81258f3072d08ed`.
+- IOC trade: `0x9892c5460eadc7aadf0b3d5ca4763fecdda6a9026c8e62823231c6e8220b6b61`. Requested and filled 0.01 Up at actual VWAP 0.804, equal to the expected average and below the 0.99 maximum.
+- Complete-set mint for a deterministic claim candidate: `0x8ea11666df3ec0c1d64c8580b606d95b938f0d3f2ccce687151fe2501f8c1631` in market `0x000000000000000000000000000000000000000000000000000000000001430e`.
+- Resolution: status 4, Up winner, raw Up balance 10000.
+- Redemption: `0x37a82ed068c2abb6e0f2960a6cbfc52bfa4fdddb0ad898c6b7fca26d9e870b22`. The application selected only outcome 0, required a successful receipt, and verified the winning outcome balance became zero.
 
-Read feasibility: PASS. Write feasibility: PENDING funded wallet. Overall spike is not yet GO under the original brief, which requires a real IOC transaction.
+Read feasibility: PASS. Write feasibility: PASS. Spike decision: GO.
 
 ## Observed limitations
 
-The testnet WebSocket intermittently returns `getBookLevels` request failures. The UI expires snapshots and offers reconnect. Indexer discovery can have noticeable startup latency. Exact latency distribution and indexed-fill lag have not been measured.
+The testnet WebSocket intermittently returns `getBookLevels` request failures. The UI expires snapshots and offers reconnect. Indexer discovery can have noticeable startup latency. Receipt events supplied the tested fill immediately; indexed-fill lag was not needed or measured.

@@ -13,10 +13,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "doctor": "tsx scripts/doctor.ts",
+    "wallets": "tsx scripts/check-wallets.ts",
+    "fund-demo": "tsx scripts/fund-demo-wallets.ts",
     "discover": "tsx scripts/discover.ts",
     "seed": "tsx scripts/seed-liquidity.ts",
     "cancel-demo": "tsx scripts/cancel-demo-orders.ts",
     "prepare-claim": "tsx scripts/prepare-claim.ts",
+    "prepare-guaranteed-claim": "tsx scripts/prepare-guaranteed-claim.ts",
     "verify-claim": "tsx scripts/verify-claim.ts"
   },
   "dependencies": {

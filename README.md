@@ -4,6 +4,8 @@ A final execution check for dreamDEX BTC five-minute Event Contracts on Somnia S
 
 Deployment: https://windowguard.samuelsuccess234.workers.dev
 
+Repository: https://github.com/mrfomoweb3/windowguard
+
 Deployment evidence is recorded in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). A public demo video is still pending the funded transaction rehearsal.
 
 ## Problem
@@ -81,7 +83,10 @@ See [spike results](docs/SPIKE_RESULTS.md), [SDK feedback](SDK_FEEDBACK.md), and
 
 - Real live discovery, books, blocked orders and market roll were observed in Chrome.
 - 30 automated tests cover core protection and receipt reconciliation; build and typecheck pass.
-- Funded browser order, rejection, on-chain fill, maker cleanup and redemption are still awaiting wallet rehearsal. No transaction evidence has been fabricated.
+- Real IOC: [`0x9892…6b61`](https://shannon-explorer.somnia.network/tx/0x9892c5460eadc7aadf0b3d5ca4763fecdda6a9026c8e62823231c6e8220b6b61), 0.01 Up fully filled at 0.804 average under a 0.99 maximum.
+- Real complete-set mint: [`0x8ea1…1631`](https://shannon-explorer.somnia.network/tx/0x8ea11666df3ec0c1d64c8580b606d95b938f0d3f2ccce687151fe2501f8c1631).
+- Real resolved-position redemption: [`0x37a8…0b22`](https://shannon-explorer.somnia.network/tx/0x37a82ed068c2abb6e0f2960a6cbfc52bfa4fdddb0ad898c6b7fca26d9e870b22), with the winning outcome selected from on-chain state and its balance re-read after confirmation.
+- Browser wallet rejection and maker-order cleanup still need manual UI rehearsal. No transaction evidence has been fabricated.
 - The WebSocket can fail intermittently; stale books block trading.
 - Browser wallet approval may outlast the market window. IOC protects price but cannot guarantee execution.
 - No unobserved transaction is automatically retried. Check wallet history if a request returns an uncertain outcome.
@@ -97,8 +102,8 @@ Testnet prototype. Event Contracts can lose the full amount committed. WindowGua
 - [x] Deterministic Guard and fresh pre-submit path
 - [x] Real market rollover observed
 - [x] Tests, typecheck and production build
-- [ ] Funded IOC and reconciled real fill
-- [ ] Real payable position and verified redemption
+- [x] Funded IOC and reconciled real fill
+- [x] Real payable position and verified redemption
 - [ ] Public 2–3 minute demo video
 - [ ] Final deployed wallet rehearsal
 

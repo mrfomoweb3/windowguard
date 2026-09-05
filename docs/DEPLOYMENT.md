@@ -2,6 +2,7 @@
 
 - Platform: Cloudflare Workers Static Assets
 - Production URL: https://windowguard.samuelsuccess234.workers.dev
+- Repository: https://github.com/mrfomoweb3/windowguard
 - Worker: `windowguard`
 - Cloudflare version: `8b4a2f8b-15c4-417a-a4c2-147c1c0433fb`
 - Deployed: 5 September 2026

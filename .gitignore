@@ -9,6 +9,7 @@ coverage/
 *.tsbuildinfo
 .demo-orders.json
 market.json
+claim-market.json
 transaction-dumps/
 wallet-exports/
 playwright-report/
