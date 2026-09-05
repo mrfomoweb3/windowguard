@@ -1,0 +1,2 @@
+import {describe,expect,it} from "vitest";import {selectClaimableOutcomes} from "../lib/claim-controller";
+describe("claims",()=>{it("selects only resolved winner",()=>expect(selectClaimableOutcomes({lifecycle:"RESOLVED",winningOutcome:1,balances:{0:8n,1:2n}})).toEqual([1]));it("selects both nonzero void sides",()=>expect(selectClaimableOutcomes({lifecycle:"VOIDED",balances:{0:1n,1:2n}})).toEqual([0,1]));it("returns none for losing-only balance",()=>expect(selectClaimableOutcomes({lifecycle:"RESOLVED",winningOutcome:0,balances:{0:0n,1:2n}})).toEqual([]))});

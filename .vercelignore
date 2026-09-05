@@ -1,0 +1,7 @@
+.env*
+!.env.example
+.demo-orders.json
+market.json
+transaction-dumps/
+wallet-exports/
+.git/

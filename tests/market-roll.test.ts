@@ -1,0 +1,3 @@
+import { describe,expect,it } from "vitest";import { acceptBook,applyDiscoveredMarket } from "../lib/market-controller";import { A,B,market } from "./fixtures/markets";
+const base={market:market(A),book:{marketId:A,outcome:"UP" as const,capturedAtMs:1,bids:[],asks:[]},decision:undefined,submissionEnabled:true,trades:[],trackedMarketIds:[A]};
+describe("market generation",()=>{it("clears state and disables on roll",()=>{const x=applyDiscoveredMarket(base,market(B));expect(x.book).toBeUndefined();expect(x.submissionEnabled).toBe(false)});it("discards a late old book",()=>{const rolled=applyDiscoveredMarket(base,market(B));expect(acceptBook(rolled,base.book!).book).toBeUndefined()})});
