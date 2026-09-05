@@ -1,0 +1,16 @@
+import type { Metadata } from "next";
+import { TradingWorkbench } from "@/components/trading-workbench";
+import { Providers } from "../providers";
+
+export const metadata: Metadata = {
+  title: "Dashboard | WindowGuard",
+  description: "Review and submit protected dreamDEX Event Contract orders.",
+};
+
+export default function DashboardPage() {
+  return (
+    <Providers>
+      <TradingWorkbench />
+    </Providers>
+  );
+}

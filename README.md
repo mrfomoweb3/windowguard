@@ -4,6 +4,8 @@ A final execution check for dreamDEX BTC five-minute Event Contracts on Somnia S
 
 Deployment: https://windowguard.samuelsuccess234.workers.dev
 
+The public landing page introduces the execution guard. The live trading workbench is at `/dashboard`.
+
 Repository: https://github.com/mrfomoweb3/windowguard
 
 Deployment evidence is recorded in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). A public demo video is still pending the funded transaction rehearsal.
