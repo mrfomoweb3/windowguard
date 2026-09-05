@@ -12,7 +12,7 @@ import {estimateBuyFill} from '@/lib/fill-simulation';
 import {evaluateGuard} from '@/lib/guard-engine';
 import {submitProtectedOrder} from '@/lib/trade-controller';
 import {discoverClaims,redeemClaim} from '@/lib/claim-controller';
-import {readState,saveState,emptyState,type SavedState} from '@/lib/persistence';
+import {readState,saveState,emptyState,mergeIndexedOrders,mergeIndexedTrades,type SavedState} from '@/lib/persistence';
 import type {BookSnapshot,ClaimCandidate,Outcome,OutcomeIndex,TrackedMarket} from '@/lib/types';
 
 const short=(value:string)=>`${value.slice(0,8)}…${value.slice(-6)}`;
@@ -29,6 +29,7 @@ export function TradingWorkbench(){
   const previousId=useRef<string|null>(null);
   const generation=useRef(0);
   const busyRef=useRef(false);
+  const activeWalletRef=useRef<string|null>(null);
   const [market,setMarket]=useState<TrackedMarket|null>(null);
   const [book,setBook]=useState<BookSnapshot|null>(null);
   const [outcome,setOutcome]=useState<Outcome>('UP');
@@ -79,12 +80,31 @@ export function TradingWorkbench(){
   useEffect(()=>{setNow(Date.now());const timer=setInterval(()=>setNow(Date.now()),250);return()=>clearInterval(timer);},[]);
   useEffect(()=>{
     generation.current++;ex.current?.setSigner({});setReviewed(false);setClaims([]);setScanned(false);setSaved(emptyState());
+    activeWalletRef.current=wallet;
     if(!isConnected||!address){setNotice('Wallet disconnected. Connect and review your order before submitting.');return;}
     if(chainId!==somniaTestnet.id){setNotice('Switch to Somnia Shannon testnet before trading.');return;}
     if(!walletClient||!ex.current){setNotice('Preparing the connected wallet…');return;}
     ex.current.setSigner({walletClient});setSaved(readState(address));setError('');
     setNotice('Wallet connected. Review your limits to enable submission.');
-  },[address,chainId,isConnected,walletClient,retry]);
+  },[address,chainId,isConnected,wallet,walletClient,retry]);
+
+  useEffect(()=>{
+    if(!wallet)return;const address=wallet;let disposed=false;let pending=false;
+    async function refreshActivity(){
+      const exchange=ex.current;if(!exchange||pending||exchange.walletAddress?.toLowerCase()!==address.toLowerCase())return;pending=true;
+      try{
+        const [ordersResult,fillsResult]=await Promise.allSettled([exchange.fetchOrders(undefined,undefined,100),exchange.fetchMyTrades(undefined,undefined,100)]);
+        if(disposed||activeWalletRef.current?.toLowerCase()!==address.toLowerCase())return;
+        let merged=readState(address);
+        if(fillsResult.status==='fulfilled')merged=mergeIndexedTrades(merged,fillsResult.value);
+        if(ordersResult.status==='fulfilled')merged=mergeIndexedOrders(merged,ordersResult.value);
+        saveState(address,merged);setSaved(merged);
+      }catch{/* Local confirmed activity remains available while the indexer catches up. */}
+      finally{pending=false;}
+    }
+    void refreshActivity();const timer=setInterval(()=>void refreshActivity(),8000);
+    return()=>{disposed=true;clearInterval(timer);};
+  },[wallet,retry]);
 
   useEffect(()=>{
     if(!wallet||!market)return;
@@ -109,7 +129,7 @@ export function TradingWorkbench(){
     try{
       const result=await submitProtectedOrder(exchange,intent,()=>gen===generation.current&&exchange.walletAddress?.toLowerCase()===address.toLowerCase(),()=>setNotice('Approve the protected IOC order in your wallet. A partial or zero fill is possible.'));
       const state=readState(address);state.trackedMarketIds=Array.from(new Set([...state.trackedMarketIds,result.marketId])).slice(-500);state.trades=[result,...state.trades.filter(t=>t.clientTradeId!==result.clientTradeId)].slice(0,200);saveState(address,state);
-      if(gen===generation.current)setSaved(state);
+      if(activeWalletRef.current?.toLowerCase()===address.toLowerCase())setSaved(state);
       setNotice(result.status==='REVERTED'?'Transaction reverted. No fill is reported.':`Transaction confirmed. Actual fill: ${result.filledQuantity ?? 0} contracts.`);
     }catch(e){setError(message(e));setNotice('Submission did not complete. If your wallet broadcast a transaction, inspect its history before retrying.');}
     finally{busyRef.current=false;setBusy(false);setReviewed(false);}
