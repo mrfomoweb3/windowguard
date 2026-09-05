@@ -2,7 +2,9 @@
 
 A final execution check for dreamDEX BTC five-minute Event Contracts on Somnia Shannon testnet.
 
-Deployment and repository URLs are recorded in `docs/DEPLOYMENT.md` once published. A public demo video is still pending the funded transaction rehearsal.
+Deployment: https://windowguard.samuelsuccess234.workers.dev
+
+Deployment evidence is recorded in [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md). A public demo video is still pending the funded transaction rehearsal.
 
 ## Problem
 

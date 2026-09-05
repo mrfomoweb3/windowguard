@@ -14,5 +14,6 @@ wallet-exports/
 playwright-report/
 test-results/
 .vercel/
+.wrangler/
 *.pem
 *.key
