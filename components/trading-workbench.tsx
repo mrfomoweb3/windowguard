@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from 'react';
+import Link from 'next/link';
 import {somniaTestnet} from 'viem/chains';
 import {ConnectButton} from '@rainbow-me/rainbowkit';
 import {useAccount,useChainId,useWalletClient} from 'wagmi';
@@ -122,23 +123,134 @@ export function TradingWorkbench(){
     try{const hash=await redeemClaim(ex.current,wallet,claim,index);if(gen===generation.current){persist({...saved,redemptionTxHashes:[hash,...saved.redemptionTxHashes].slice(0,200)});setClaims([]);setScanned(false);setNotice(`Redemption verified: ${hash}`);}}catch(e){setError(message(e));}finally{busyRef.current=false;setBusy(false);}
   }
 
-  return <main className="shell">
-    <nav className="nav"><div className="brand">WINDOW<span>GUARD</span></div><div className="navmeta"><span className="badge">SOMNIA SHANNON</span><span className="badge">TESTNET</span><WalletControl disabled={busy}/></div></nav>
-    <section className="hero"><h1>Check the price.<br/>Protect your order.</h1><p>A final execution check for five-minute markets. Set your limits before your wallet opens.</p></section>
-    <p className="notice" role="status">{notice}</p>
-    {error&&<div className="notice" role="alert">{error} <button className="secondary" disabled={busy} onClick={()=>{ex.current?.setSigner({});setRetry(x=>x+1);}}>Reconnect market data</button></div>}
-    <section className="workspace" aria-label="Order protection workbench"><div className="main">
-      <header className="market"><div><span className="label">Current market</span><strong>BTC five-minute Up / Down</strong></div><div><span className="label">Market ID</span><span className="value" title={market?.marketId}>{market?short(market.marketId):'Awaiting market'}</span></div><div><span className="label">Status</span><span className="value">{market?.status??'UNAVAILABLE'}</span></div><div><span className="label">Remaining</span><span className="value countdown">{remaining===null?'--:--':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`}</span></div></header>
-      <div className="formarea"><form className="intent" onSubmit={e=>{e.preventDefault();void submit();}}><h2 className="sectiontitle">Order intent</h2><fieldset disabled={busy}><div className="toggle" role="group" aria-label="Outcome">{(['UP','DOWN'] as Outcome[]).map(side=><button type="button" aria-pressed={outcome===side} className={outcome===side?'active':''} key={side} onClick={()=>setOutcome(side)}>Buy {side==='UP'?'Up':'Down'}</button>)}</div><div className="fields"><Field id="quantity" label="Quantity" value={quantity} change={v=>{setQuantity(v);setReviewed(false);}} min="0.01" max="25" step="0.001"/><Field id="limit" label="Maximum price per contract" value={limit} change={v=>{setLimit(v);setReviewed(false);}} min="0.001" max="0.999" step="0.001"/><Field id="time" label="Minimum seconds remaining" value={minimum} change={v=>{setMinimum(v);setReviewed(false);}} min="1" max="299" step="1"/></div></fieldset></form>
-      <div className="check"><h2 className="sectiontitle">Execution check</h2><Metric name="Best ask" value={book?.bestAsk?.toFixed(3)??'Unavailable'}/><Metric name="Estimated average" value={estimate?.averagePrice?.toFixed(3)??'Unavailable'}/><Metric name="Worst accepted price" value={estimate?.worstPrice?.toFixed(3)??'Unavailable'}/><Metric name="Available within limit" value={estimate?`${estimate.fillableQuantity.toFixed(3)} / ${quantity}`:'Unavailable'}/><Metric name="Book age" value={age===null?'Awaiting snapshot':`${age} ms`}/></div></div>
-      <div className={`verdict ${decision?.allowed?'safe':'blocked'}`} role="status"><h2>{decision?decision.code.replaceAll('_',' '):'WAITING FOR LIVE DATA'}</h2><p>{decision?.reasons[0]??'Submission requires a verified current market and fresh order book.'}</p>{decision?.code==='INSUFFICIENT_DEPTH'&&estimate&&estimate.fillableQuantity>0&&<button className="secondary" disabled={busy} onClick={()=>{setQuantity(String(estimate.fillableQuantity));setReviewed(false);}}>Use {estimate.fillableQuantity} contracts</button>}</div>
-      <label className="review"><input type="checkbox" checked={reviewed} disabled={busy||!market||!decision?.allowed} onChange={e=>setReviewed(e.target.checked)}/> I reviewed this market and my maximum price.</label>
-      <button className="submit" disabled={busy||!wallet||!decision?.allowed||!reviewed} onClick={submit}>{busy?'Request in progress':!wallet?'Connect wallet to trade':'Review and submit protected order'}</button>
-      <section className="activity"><h2 className="sectiontitle">Order activity</h2>{saved.trades.length===0?<p>No orders recorded for this wallet.</p>:saved.trades.map(t=><article key={t.clientTradeId}><strong>{t.status} · {t.outcome}</strong><p>{t.filledQuantity===undefined?'Fill not verified':`${t.filledQuantity} / ${t.requestedQuantity} filled${t.actualAveragePrice!==undefined?` at ${t.actualAveragePrice.toFixed(4)} average`:''}`}</p>{t.txHash&&<a href={explorer(t.txHash)} target="_blank" rel="noreferrer">View transaction {short(t.txHash)}</a>}</article>)}</section>
-    </div><aside className="side"><div className="sidehead"><h2>Executable depth</h2><span className="age">{age===null?'NO SNAPSHOT':age>2500?'STALE':`${age} MS`}</span></div><div className="bookhead"><span>Side</span><span>Price</span><span>Quantity</span></div>{!book?<p className="claim">Waiting for the current book.</p>:book.asks.length===0?<p className="claim">No executable asks available.</p>:book.asks.map((level,i)=><div className="bookrow" key={`${level.price}-${i}`}><span className="ask">ASK {i+1}</span><span>{level.price.toFixed(3)}</span><span>{level.quantity.toFixed(3)}</span></div>)}<div className="spread"><span>SPREAD</span><strong className="mono">{book?.spread?.toFixed(3)??'Unavailable'}</strong></div>{book?.bids.map((level,i)=><div className="bookrow" key={`${level.price}-${i}`}><span className="bid">BID {i+1}</span><span>{level.price.toFixed(3)}</span><span>{level.quantity.toFixed(3)}</span></div>)}
-      <section className="claim"><h2 className="sectiontitle">Payable positions</h2><div className="claimbox"><strong>{scanned&&!claims.length?'No payable positions found':'Recorded-market claims'}</strong><p>Scans up to 120 market IDs recorded by this wallet in WindowGuard. Each balance is verified on-chain.</p><button className="secondary" disabled={!wallet||busy} onClick={scan}>Scan recorded markets</button>{claims.map(c=><article key={c.marketId}><p>{short(c.marketId)} · {c.lifecycle}</p>{c.claimableOutcomes.map(i=><button className="secondary" key={i} disabled={busy} onClick={()=>redeem(c,i)}>Redeem {i===0?'Up':'Down'}</button>)}</article>)}{saved.redemptionTxHashes.map(hash=><p key={hash}><a href={explorer(hash)} target="_blank" rel="noreferrer">Redemption {short(hash)}</a></p>)}</div></section>
-    </aside></section><p className="risk">Testnet prototype. Event Contracts can lose the full amount committed. WindowGuard checks execution conditions; it does not predict outcomes or guarantee fills.</p>
-  </main>;
+  return <div className="dashboard-page">
+    <a className="skip" href="#trade-workbench">Skip to trade controls</a>
+    <aside className="dashboard-sidebar">
+      <Link className="dashboard-mark" href="/" aria-label="WindowGuard home">WG</Link>
+      <div className="wallet-summary">
+        <span className="label">Active wallet</span>
+        <strong>{wallet?short(wallet):'Not connected'}</strong>
+        <small>Somnia Shannon · 50312</small>
+      </div>
+      <nav className="dashboard-nav" aria-label="Dashboard sections">
+        <span className="nav-label">Workspace</span>
+        <a className="active" href="#trade-workbench"><i>TR</i>Trade guard</a>
+        <a href="#depth-book"><i>DP</i>Live depth</a>
+        <a href="#order-activity"><i>AC</i>Activity</a>
+        <a href="#payable-positions"><i>CL</i>Claims</a>
+      </nav>
+      <div className="sidebar-foot">
+        <span>Testnet execution</span>
+        <Link href="/">Back to website</Link>
+      </div>
+    </aside>
+
+    <main className="dashboard-main" id="trade-workbench">
+      <header className="dashboard-topbar">
+        <div className="breadcrumbs"><span>Dashboard</span><b>/</b><span>Event contracts</span><b>/</b><strong>BTC 5m</strong></div>
+        <WalletControl disabled={busy}/>
+      </header>
+
+      <div className="dashboard-content">
+        <p className="notice" role="status">{notice}</p>
+        {error&&<div className="notice error-notice" role="alert">{error} <button className="inline-action" disabled={busy} onClick={()=>{ex.current?.setSigner({});setRetry(x=>x+1);}}>Reconnect data</button></div>}
+
+        <section className="instrument-header" aria-labelledby="instrument-title">
+          <div>
+            <span className="label">Current market</span>
+            <h1 id="instrument-title">BTC five-minute <em>Up / Down</em></h1>
+            <p className="market-id" title={market?.marketId}>{market?short(market.marketId):'Discovering the active market'}</p>
+          </div>
+          <div className="market-facts">
+            <div><span className="label">Status</span><strong>{market?.status??'Unavailable'}</strong></div>
+            <div><span className="label">Remaining</span><strong className="countdown">{remaining===null?'--:--':`${String(Math.floor(remaining/60)).padStart(2,'0')}:${String(remaining%60).padStart(2,'0')}`}</strong></div>
+          </div>
+        </section>
+
+        <div className="section-tabs" aria-label="Workbench views">
+          <a className="active" href="#trade-workbench">Order guard</a>
+          <a href="#depth-book">Executable depth</a>
+          <a href="#order-activity">Order history</a>
+        </div>
+
+        <section className="workspace" aria-label="Order protection workbench">
+          <div className="main">
+            <div className="guard-summary">
+              <div>
+                <span className="label">Guard result</span>
+                <strong>{decision?decision.code.replaceAll('_',' '):'Waiting for live data'}</strong>
+              </div>
+              <span className={`guard-light ${decision?.allowed?'safe':'blocked'}`}>{decision?.allowed?'Submission ready':'Protected'}</span>
+            </div>
+
+            <div className="formarea">
+              <form className="intent" onSubmit={e=>{e.preventDefault();void submit();}}>
+                <h2 className="sectiontitle">Order intent</h2>
+                <fieldset disabled={busy}>
+                  <div className="toggle" role="group" aria-label="Outcome">
+                    {(['UP','DOWN'] as Outcome[]).map(side=><button type="button" aria-pressed={outcome===side} className={outcome===side?'active':''} key={side} onClick={()=>setOutcome(side)}>Buy {side==='UP'?'Up':'Down'}</button>)}
+                  </div>
+                  <div className="fields">
+                    <Field id="quantity" label="Quantity" value={quantity} change={v=>{setQuantity(v);setReviewed(false);}} min="0.01" max="25" step="0.001"/>
+                    <Field id="limit" label="Maximum price" value={limit} change={v=>{setLimit(v);setReviewed(false);}} min="0.001" max="0.999" step="0.001"/>
+                    <Field id="time" label="Minimum seconds" value={minimum} change={v=>{setMinimum(v);setReviewed(false);}} min="1" max="299" step="1"/>
+                  </div>
+                </fieldset>
+              </form>
+              <div className="check">
+                <h2 className="sectiontitle">Execution check</h2>
+                <Metric name="Best ask" value={book?.bestAsk?.toFixed(3)??'Unavailable'}/>
+                <Metric name="Estimated average" value={estimate?.averagePrice?.toFixed(3)??'Unavailable'}/>
+                <Metric name="Worst accepted price" value={estimate?.worstPrice?.toFixed(3)??'Unavailable'}/>
+                <Metric name="Available within limit" value={estimate?`${estimate.fillableQuantity.toFixed(3)} / ${quantity}`:'Unavailable'}/>
+                <Metric name="Book age" value={age===null?'Awaiting snapshot':`${age} ms`}/>
+              </div>
+            </div>
+
+            <div className={`verdict ${decision?.allowed?'safe':'blocked'}`} role="status">
+              <h2>{decision?decision.code.replaceAll('_',' '):'WAITING FOR LIVE DATA'}</h2>
+              <p>{decision?.reasons[0]??'Submission requires a verified current market and fresh order book.'}</p>
+              {decision?.code==='INSUFFICIENT_DEPTH'&&estimate&&estimate.fillableQuantity>0&&<button className="secondary" disabled={busy} onClick={()=>{setQuantity(String(estimate.fillableQuantity));setReviewed(false);}}>Use {estimate.fillableQuantity} contracts</button>}
+            </div>
+            <label className="review"><input type="checkbox" checked={reviewed} disabled={busy||!market||!decision?.allowed} onChange={e=>setReviewed(e.target.checked)}/> I reviewed this market and my maximum price.</label>
+            <button className="submit" disabled={busy||!wallet||!decision?.allowed||!reviewed} onClick={submit}>{busy?'Request in progress':!wallet?'Connect wallet to trade':'Review and submit protected order'}</button>
+
+            <section className="activity" id="order-activity">
+              <div className="section-heading"><h2>Order activity</h2><span>{saved.trades.length} recorded</span></div>
+              {saved.trades.length===0?<div className="empty-state"><strong>No orders for this wallet</strong><p>Confirmed submissions will appear here with their verified fill.</p></div>:saved.trades.map(t=><article key={t.clientTradeId}><strong>{t.status} · {t.outcome}</strong><p>{t.filledQuantity===undefined?'Fill not verified':`${t.filledQuantity} / ${t.requestedQuantity} filled${t.actualAveragePrice!==undefined?` at ${t.actualAveragePrice.toFixed(4)} average`:''}`}</p>{t.txHash&&<a href={explorer(t.txHash)} target="_blank" rel="noreferrer">View transaction {short(t.txHash)}</a>}</article>)}
+            </section>
+          </div>
+
+          <aside className="side">
+            <section className="policy">
+              <div className="section-heading"><h2>Protection policy</h2><span>Live</span></div>
+              <p>WindowGuard checks the market generation, lifecycle, remaining time, price, and executable quantity before opening your wallet.</p>
+            </section>
+
+            <section id="depth-book">
+              <div className="sidehead"><h2>Executable depth</h2><span className="age">{age===null?'NO SNAPSHOT':age>2500?'STALE':`${age} MS`}</span></div>
+              <div className="bookhead"><span>Side</span><span>Price</span><span>Quantity</span></div>
+              {!book?<div className="empty-state compact"><strong>Waiting for the book</strong><p>The next fresh snapshot will appear here.</p></div>:book.asks.length===0?<div className="empty-state compact"><strong>No executable asks</strong><p>This market has no visible sell depth.</p></div>:book.asks.map((level,i)=><div className="bookrow" key={`${level.price}-${i}`}><span className="ask">ASK {i+1}</span><span>{level.price.toFixed(3)}</span><span>{level.quantity.toFixed(3)}</span></div>)}
+              <div className="spread"><span>Spread</span><strong className="mono">{book?.spread?.toFixed(3)??'Unavailable'}</strong></div>
+              {book?.bids.map((level,i)=><div className="bookrow" key={`${level.price}-${i}`}><span className="bid">BID {i+1}</span><span>{level.price.toFixed(3)}</span><span>{level.quantity.toFixed(3)}</span></div>)}
+            </section>
+
+            <section className="claim" id="payable-positions">
+              <div className="section-heading"><h2>Payable positions</h2><span>Recorded IDs</span></div>
+              <div className="claimbox">
+                <strong>{scanned&&!claims.length?'No payable positions found':'Settlement scan'}</strong>
+                <p>Checks up to 120 markets recorded by this wallet. Every balance is verified on-chain.</p>
+                <button className="secondary" disabled={!wallet||busy} onClick={scan}>Scan recorded markets</button>
+                {claims.map(c=><article key={c.marketId}><p>{short(c.marketId)} · {c.lifecycle}</p>{c.claimableOutcomes.map(i=><button className="secondary" key={i} disabled={busy} onClick={()=>redeem(c,i)}>Redeem {i===0?'Up':'Down'}</button>)}</article>)}
+                {saved.redemptionTxHashes.map(hash=><p key={hash}><a href={explorer(hash)} target="_blank" rel="noreferrer">Redemption {short(hash)}</a></p>)}
+              </div>
+            </section>
+          </aside>
+        </section>
+        <p className="risk">Testnet prototype. Event Contracts can lose the full amount committed. WindowGuard checks execution conditions; it does not predict outcomes or guarantee fills.</p>
+      </div>
+    </main>
+  </div>;
 }
 function Metric({name,value}:{name:string;value:string}){return <div className="metric"><span>{name}</span><strong>{value}</strong></div>;}
 function Field({id,label,value,change,min,max,step}:{id:string;label:string;value:string;change:(v:string)=>void;min:string;max:string;step:string}){return <div className="field"><label htmlFor={id}>{label}</label><input id={id} type="number" value={value} onChange={e=>change(e.target.value)} min={min} max={max} step={step} required/></div>;}
