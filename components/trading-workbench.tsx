@@ -125,13 +125,22 @@ export function TradingWorkbench(){
   async function submit(){
     if(busyRef.current||!ex.current||!wallet||!intent||!reviewed)return;
     busyRef.current=true;setBusy(true);setError('');setNotice('Rechecking market, chain status, book depth, and limits…');
-    const gen=generation.current;const exchange=ex.current;const address=wallet;
+    const gen=generation.current;const exchange=ex.current;const address=wallet;let pendingId:string|null=null;
     try{
-      const result=await submitProtectedOrder(exchange,intent,()=>gen===generation.current&&exchange.walletAddress?.toLowerCase()===address.toLowerCase(),()=>setNotice('Approve the protected IOC order in your wallet. A partial or zero fill is possible.'));
-      const state=readState(address);state.trackedMarketIds=Array.from(new Set([...state.trackedMarketIds,result.marketId])).slice(-500);state.trades=[result,...state.trades.filter(t=>t.clientTradeId!==result.clientTradeId)].slice(0,200);saveState(address,state);
+      const result=await submitProtectedOrder(exchange,intent,()=>gen===generation.current&&exchange.walletAddress?.toLowerCase()===address.toLowerCase(),()=>{
+        const createdAtMs=Date.now();pendingId=`pending:${createdAtMs}:${intent.marketId}`;
+        const pending={clientTradeId:pendingId,marketId:intent.marketId,symbol:intent.outcome==='UP'?market!.upSymbol:market!.downSymbol,outcome:intent.outcome,requestedQuantity:intent.quantity,limitPrice:intent.maximumAveragePrice,expectedAveragePrice:estimate?.averagePrice,status:'AWAITING_SIGNATURE' as const,createdAtMs,updatedAtMs:createdAtMs};
+        const state=readState(address);state.trackedMarketIds=Array.from(new Set([...state.trackedMarketIds,intent.marketId])).slice(-500);state.trades=[pending,...state.trades.filter(t=>t.clientTradeId!==pendingId)].slice(0,200);saveState(address,state);
+        if(activeWalletRef.current?.toLowerCase()===address.toLowerCase())setSaved(state);
+        setNotice('Approve the protected IOC order in your wallet. A partial or zero fill is possible.');
+      });
+      const state=readState(address);state.trackedMarketIds=Array.from(new Set([...state.trackedMarketIds,result.marketId])).slice(-500);state.trades=[result,...state.trades.filter(t=>t.clientTradeId!==result.clientTradeId&&t.clientTradeId!==pendingId)].slice(0,200);saveState(address,state);
       if(activeWalletRef.current?.toLowerCase()===address.toLowerCase())setSaved(state);
       setNotice(result.status==='REVERTED'?'Transaction reverted. No fill is reported.':`Transaction confirmed. Actual fill: ${result.filledQuantity ?? 0} contracts.`);
-    }catch(e){setError(message(e));setNotice('Submission did not complete. If your wallet broadcast a transaction, inspect its history before retrying.');}
+    }catch(e){
+      if(pendingId){const state=readState(address);const rejected=/reject|denied|declined/i.test(message(e));state.trades=state.trades.map(t=>t.clientTradeId===pendingId?{...t,status:rejected?'REJECTED':'SUBMITTED',updatedAtMs:Date.now()}:t);saveState(address,state);if(activeWalletRef.current?.toLowerCase()===address.toLowerCase())setSaved(state);}
+      setError(message(e));setNotice('Submission did not complete. If your wallet broadcast a transaction, inspect its history before retrying.');
+    }
     finally{busyRef.current=false;setBusy(false);setReviewed(false);}
   }
   async function scan(){
