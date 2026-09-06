@@ -4,7 +4,7 @@
 - Production URL: https://windowguard.samuelsuccess234.workers.dev
 - Repository: https://github.com/mrfomoweb3/windowguard
 - Worker: `windowguard`
-- Cloudflare version: `8b4a2f8b-15c4-417a-a4c2-147c1c0433fb`
+- Cloudflare version: `b95e96d6-c227-4559-a596-be2373a72db0`
 - Deployed: 5 September 2026
 
 ## Public verification
