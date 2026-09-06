@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { TradingWorkbench } from "@/components/trading-workbench";
-import { Providers } from "../providers";
 
 export const metadata: Metadata = {
   title: "Dashboard | WindowGuard",
@@ -8,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function DashboardPage() {
-  return (
-    <Providers>
-      <TradingWorkbench />
-    </Providers>
-  );
+  return <TradingWorkbench />;
 }

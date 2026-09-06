@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
+import { LandingWalletButton } from "@/components/landing-wallet-button";
 import styles from "./landing.module.css";
 
 export const metadata: Metadata = {
@@ -43,9 +44,7 @@ export default function LandingPage() {
               Source
             </a>
           </div>
-          <Link className={styles.appLink} href="/dashboard">
-            Open app
-          </Link>
+          <LandingWalletButton className={styles.appLink} />
         </nav>
       </header>
 
@@ -129,7 +128,7 @@ export default function LandingPage() {
           </a>
           <div>
             <span>Safety suite</span>
-            <strong>30 automated tests passing</strong>
+            <strong>34 automated tests passing</strong>
           </div>
         </div>
       </section>
