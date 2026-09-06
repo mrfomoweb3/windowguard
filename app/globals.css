@@ -247,6 +247,34 @@ fieldset {
   white-space: nowrap;
 }
 
+.wallet-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.disconnect {
+  padding: 10px 13px;
+  border: 1px solid #3a3d3b;
+  border-radius: 11px;
+  background: transparent;
+  color: #c6cbc8;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.disconnect:hover:not(:disabled) {
+  border-color: #8c928e;
+  background: #181a19;
+  color: #fff;
+}
+
+.disconnect:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .dashboard-content {
   width: min(100%, 1500px);
   margin: 0 auto;
@@ -790,6 +818,7 @@ input:focus-visible {
 }
 
 .connect,
+.disconnect,
 .submit,
 .secondary,
 .toggle button,

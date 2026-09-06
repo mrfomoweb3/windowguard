@@ -1,80 +1,51 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useEffect, useState } from "react";
+import { useChainModal, useConnectModal } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
+import { somniaTestnet } from "viem/chains";
+import { useAccount, useChainId } from "wagmi";
 
 export function LandingWalletButton({ className }: { className: string }) {
   const router = useRouter();
+  const { isConnected } = useAccount();
+  const chainId = useChainId();
+  const { openConnectModal } = useConnectModal();
+  const { openChainModal } = useChainModal();
   const [continueToDashboard, setContinueToDashboard] = useState(false);
-  const openDashboard = useCallback(() => router.push("/dashboard"), [router]);
+  const wrongNetwork = isConnected && chainId !== somniaTestnet.id;
 
-  return (
-    <ConnectButton.Custom>
-      {({
-        account,
-        chain,
-        mounted,
-        openChainModal,
-        openConnectModal,
-      }) => {
-        const connected = mounted && account && chain;
-
-        return (
-          <WalletAction
-            className={className}
-            connected={Boolean(connected)}
-            ready={mounted}
-            wrongNetwork={Boolean(connected && chain.unsupported)}
-            continueToDashboard={continueToDashboard}
-            onConnected={openDashboard}
-            onRequestConnect={() => {
-              setContinueToDashboard(true);
-              openConnectModal();
-            }}
-            onRequestNetwork={() => {
-              setContinueToDashboard(true);
-              openChainModal();
-            }}
-          />
-        );
-      }}
-    </ConnectButton.Custom>
-  );
-}
-
-function WalletAction({
-  className,
-  connected,
-  ready,
-  wrongNetwork,
-  continueToDashboard,
-  onConnected,
-  onRequestConnect,
-  onRequestNetwork,
-}: {
-  className: string;
-  connected: boolean;
-  ready: boolean;
-  wrongNetwork: boolean;
-  continueToDashboard: boolean;
-  onConnected: () => void;
-  onRequestConnect: () => void;
-  onRequestNetwork: () => void;
-}) {
   useEffect(() => {
-    if (continueToDashboard && connected && !wrongNetwork) onConnected();
-  }, [connected, continueToDashboard, onConnected, wrongNetwork]);
+    if (continueToDashboard && isConnected && !wrongNetwork) {
+      router.push("/dashboard");
+    }
+  }, [continueToDashboard, isConnected, router, wrongNetwork]);
 
   function act() {
-    if (!connected) onRequestConnect();
-    else if (wrongNetwork) onRequestNetwork();
-    else onConnected();
+    if (!isConnected) {
+      setContinueToDashboard(true);
+      openConnectModal?.();
+      return;
+    }
+
+    if (wrongNetwork) {
+      setContinueToDashboard(true);
+      openChainModal?.();
+      return;
+    }
+
+    router.push("/dashboard");
   }
 
+  const modalReady = isConnected
+    ? wrongNetwork
+      ? Boolean(openChainModal)
+      : true
+    : Boolean(openConnectModal);
+
   return (
-    <button className={className} type="button" disabled={!ready} onClick={act}>
-      {wrongNetwork ? "Switch network" : "Connect wallet"}
+    <button className={className} type="button" disabled={!modalReady} onClick={act}>
+      {wrongNetwork ? "Switch network" : isConnected ? "Open dashboard" : "Connect wallet"}
     </button>
   );
 }

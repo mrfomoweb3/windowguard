@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
 import {somniaTestnet} from 'viem/chains';
 import {ConnectButton} from '@rainbow-me/rainbowkit';
-import {useAccount,useChainId,useWalletClient} from 'wagmi';
+import {useAccount,useChainId,useDisconnect,useWalletClient} from 'wagmi';
 import type {SomniaMarkets} from '@somnia-chain/markets-sdk';
 import {createExchange} from '@/lib/exchange';
 import {discoverCurrentBtc5mMarket} from '@/lib/market-discovery';
@@ -23,7 +23,8 @@ export function TradingWorkbench(){
   const {address,isConnected}=useAccount();
   const chainId=useChainId();
   const {data:walletClient}=useWalletClient();
-  const wallet=isConnected&&address&&chainId===somniaTestnet.id&&walletClient?address:null;
+  const connectedAddress=isConnected&&address&&chainId===somniaTestnet.id?address:null;
+  const wallet=connectedAddress&&walletClient?connectedAddress:null;
   const ex=useRef<SomniaMarkets|null>(null);
   const current=useRef<TrackedMarket|null>(null);
   const previousId=useRef<string|null>(null);
@@ -158,7 +159,7 @@ export function TradingWorkbench(){
       <Link className="dashboard-mark" href="/" aria-label="WindowGuard home">WG</Link>
       <div className="wallet-summary">
         <span className="label">Active wallet</span>
-        <strong>{wallet?short(wallet):'Not connected'}</strong>
+        <strong>{connectedAddress?short(connectedAddress):'Not connected'}</strong>
         <small>Somnia Shannon · 50312</small>
       </div>
       <nav className="dashboard-nav" aria-label="Dashboard sections">
@@ -177,7 +178,7 @@ export function TradingWorkbench(){
     <main className="dashboard-main" id="trade-workbench">
       <header className="dashboard-topbar">
         <div className="breadcrumbs"><span>Dashboard</span><b>/</b><span>Event contracts</span><b>/</b><strong>BTC 5m</strong></div>
-        <WalletControl disabled={busy}/>
+        <WalletControl/>
       </header>
 
       <div className="dashboard-content">
@@ -283,4 +284,12 @@ export function TradingWorkbench(){
 }
 function Metric({name,value}:{name:string;value:string}){return <div className="metric"><span>{name}</span><strong>{value}</strong></div>;}
 function Field({id,label,value,change,min,max,step}:{id:string;label:string;value:string;change:(v:string)=>void;min:string;max:string;step:string}){return <div className="field"><label htmlFor={id}>{label}</label><input id={id} type="number" value={value} onChange={e=>change(e.target.value)} min={min} max={max} step={step} required/></div>;}
-function WalletControl({disabled}:{disabled:boolean}){return <ConnectButton.Custom>{({account,chain,mounted,openAccountModal,openChainModal,openConnectModal})=>{const ready=mounted;const connected=ready&&account&&chain;return <div aria-hidden={!ready} style={!ready?{opacity:0,pointerEvents:'none',userSelect:'none'}:undefined}>{!connected?<button type="button" className="connect" disabled={disabled} onClick={openConnectModal}>Connect wallet</button>:chain.unsupported?<button type="button" className="connect" disabled={disabled} onClick={openChainModal}>Wrong network</button>:<button type="button" className="connect" disabled={disabled} onClick={openAccountModal}>{account.displayName}</button>}</div>;}}</ConnectButton.Custom>;}
+function WalletControl(){
+  const {disconnect,isPending}=useDisconnect();
+  return <ConnectButton.Custom>{({account,chain,mounted,openAccountModal,openChainModal,openConnectModal})=>{
+    const ready=mounted;const connected=ready&&account&&chain;
+    return <div className="wallet-controls" aria-hidden={!ready} style={!ready?{opacity:0,pointerEvents:'none',userSelect:'none'}:undefined}>
+      {!connected?<button type="button" className="connect" onClick={openConnectModal}>Connect wallet</button>:chain.unsupported?<><button type="button" className="connect" onClick={openChainModal}>Wrong network</button><button type="button" className="disconnect" disabled={isPending} onClick={()=>disconnect()}>Disconnect</button></>:<><button type="button" className="connect" onClick={openAccountModal} aria-label={`Open wallet menu for ${account.displayName}`}>{account.displayName}</button><button type="button" className="disconnect" disabled={isPending} onClick={()=>disconnect()}>Disconnect</button></>}
+    </div>;
+  }}</ConnectButton.Custom>;
+}
