@@ -1,0 +1,11 @@
+Five-minute Event Contracts move quickly. A quote can change before wallet approval. Liquidity can disappear, or the market can roll into its next window. WindowGuard protects this final moment before execution on Somnia.
+
+I’ll connect an EVM wallet through RainbowKit. The application confirms Somnia Shannon testnet, then opens the live dashboard.
+
+WindowGuard discovers the current BTC five-minute market automatically. It verifies the on-chain lifecycle and expiry while refreshing executable order-book depth every second. The trader defines an outcome, quantity, maximum price, and minimum time remaining.
+
+When every condition passes, the guard reports SAFE. After review, WindowGuard repeats every check with fresh data before opening the wallet. The order uses immediate-or-cancel execution, so an unfilled remainder won’t rest unexpectedly on the book.
+
+The safety policy remains active as the market changes. Here, liquidity no longer covers the requested quantity within the price limit. WindowGuard changes its verdict to INSUFFICIENT DEPTH and blocks another wallet request.
+
+Confirmed activity comes from transaction receipts and decoded fills, not optimistic interface state. WindowGuard is non-custodial and built with RainbowKit, the Somnia Markets SDK, and thirty-four automated safety tests. It doesn’t predict the winner. It helps traders execute only while their own limits still hold.

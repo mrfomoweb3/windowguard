@@ -86,6 +86,33 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className={styles.thesis} aria-label="Problem, foundation, and solution">
+        <article>
+          <span>01 / The problem</span>
+          <h2>A valid quote can expire before a trader signs.</h2>
+          <p>
+            In a five-minute market, price, depth, status, or even the active
+            market can change between review and wallet approval.
+          </p>
+        </article>
+        <article>
+          <span>02 / The backing</span>
+          <h2>Live market data, verified on-chain.</h2>
+          <p>
+            Built with the Somnia Markets SDK, dreamDEX order-book data, and
+            lifecycle reads from Somnia Shannon Testnet.
+          </p>
+        </article>
+        <article>
+          <span>03 / Our solution</span>
+          <h2>A deterministic gate before every signature.</h2>
+          <p>
+            WindowGuard rechecks identity, time, freshness, full depth, and
+            price—then opens the wallet only when every rule still passes.
+          </p>
+        </article>
+      </section>
+
       <section className={styles.protection} id="protection">
         <div className={styles.protectionLead}>
           <h2>The quote can change while you decide.</h2>
